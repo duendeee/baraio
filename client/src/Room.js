@@ -1,90 +1,77 @@
-import React, { useEffect, useState } from 'react'
-import {socket} from './Chat'
-import uuid from 'uuid/v4'
+import React, {Component} from 'react'
+import {socket} from './Login'
+import "./Global"
 
-const myId = uuid()
 
-const Room = () => {
-    const [roomName, updateRoomName] = useState('')
-    const [rooms, updateRooms] = useState([])
-    const [roomNameToJoin, updateRoomNameToJoin] = useState('')
+class Room extends Component{
+    constructor(){
+        super();
+        this.state = {
+            numPlayers: 0,
+            numPlayersMax: 2,
+            listPlayers: [],
+            rooms: []
+        }
+    }
 
-    useEffect(() => {
-        const handleNewRoomName = newRoomName =>
-            updateRooms([...rooms, newRoomName])
-  
-        socket.on('createRoom', handleNewRoomName)
+    componentDidMount(){
+        socket.on('userReady', nickname => {
+            console.log('NICKNAME => ', nickname)
+            global.username = nickname
+        })
+    }
 
-        return () => socket.off('createRoom', handleNewRoomName)
-    }, [rooms])
+    componentDidUpdate(){
+        socket.on('createRoom', (lista) => {
+            this.setState({
+                rooms: [...this.state.rooms, lista]
+            })
+        })
+        console.log(this.state.rooms)
+    }
+
+    getNumPlayersSelect = (e) => {
+        //console.log(e.target.value);
+        this.setState({numPlayersMax: e.target.value})
+    }
+
+    createRoom = () => {
+        const maxPlayers = this.state.numPlayersMax
+        console.log('MAX PLAYERS => ', maxPlayers)
+        if(global.username === ''){
+            console.log('IMPOSSIVEL CRIAR SALA. FALTANDO USER ID. VOLTE PARA A TELA INICIAL');
+        }else{
+            let lista = [];
+            lista[0] = global.username
+            lista[1] = maxPlayers            
+            socket.emit('createRoom', lista)
+
+            console.log('SALA CRIADA => ',global.username)         
+
+            socket.on('connectedToRoom', data => {
+                console.log(data)
+            })
+        }
+    }
+
 
     
-    const handleFormSubmit = event => {
-        event.preventDefault()
-        if (roomName.trim()) {
-            socket.emit('createRoom', {
-                id: myId,
-                roomName
-            })
-            updateRoomName('')
-        }
+    render(){
+        //console.log(this.state.numPlayersMax);
+        return (
+            <div className="m4">
+                <span>Número máximo de jogadores: </span>
+                <select onChange={this.getNumPlayersSelect}>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+    
+                <br/><button onClick={this.createRoom}>Criar Sala</button>
+        
+            </div>
+        );
     }
-
-
-    const handleInputChange = event =>
-        updateRoomName(event.target.value)
-
-
-    const handleJoinRoom = event => {
-        event.preventDefault()
-        if(roomNameToJoin.trim()){
-            if(socket.emit('joinRoom', roomNameToJoin)){
-                console.log('joining room', roomNameToJoin)
-            }
-        }
-    }
-
-    const handleInputJoinRoomChange = event =>
-        updateRoomNameToJoin(event.target.value)
-
-    return (
-        <div className="m4">
-            <form className="form" onSubmit={handleFormSubmit}>
-                <label>Nome da room:</label>
-                <input
-                    className="form__field"
-                    onChange={handleInputChange}
-                    placeholder=""
-                    type="text"
-                    value={roomName}
-                />
-            </form>
-
-            <ul className="list">
-                { rooms.map((m, idx) => (
-                    <li key={idx}>
-                        <span>
-                            ID: { m.id }<br/>
-                            Nome da room: { m.roomName }
-                        </span>
-                    </li>
-                ))}
-            </ul>
-
-            <form className="p4" onSubmit={handleJoinRoom}>
-                <label>Nome da room p/ entrar:</label>
-                <input
-                    className="form__field"
-                    onChange={handleInputJoinRoomChange}
-                    placeholder=""
-                    type="text"
-                    value={roomNameToJoin}
-                />
-            </form>
-        </div>
-    );
 }
-
-
 
 export default Room

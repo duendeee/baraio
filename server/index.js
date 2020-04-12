@@ -18,25 +18,23 @@ io.on("connection", socket => {
     console.log(`User Connected: ${id}`);
     console.log(`Total Users Connected: ${totalUsers}`);
 
-    //SEND MESSAGE
-    socket.on("chat message", ({ nickname, msg }) => {
-        console.log(`[*] ${nickname}: ${msg}`);
-        io.emit("chat message", { nickname, msg });
+    //SET USER
+    socket.on("set user", (nickname) => {
+        console.log("Recebendo novo usuário: ",nickname);
+        socket.nickname = nickname;
+        io.emit("userReady", nickname);
     });
 
 
-    //CREATE ROOM
-    socket.on('createRoom', roomName => {
-        console.log('[SOCKET] createRoom => ', roomName)
-        io.emit('createRoom', roomName)
+    //CREATE and JOIN ROOM
+    socket.on('createRoom', lista => {
+        console.log('LISTA => ', lista)
+        socket.join(lista[0])
+        io.emit('createRoom', `sala criada: ${lista}`)
+        io.sockets.in(lista[0]).emit('connectedToRoom', `u are in ${lista[0]} room`)
     })
 
-    //JOIN ROOM
-    socket.on('joinRoom', roomNameToJoin => {
-        console.log('joining room', roomNameToJoin)
-        socket.join(roomNameToJoin)
-        io.sockets.in(roomNameToJoin).emit('connectedToRoom', `u are in ${roomNameToJoin} room`)
-    })
+  
 
     
 
